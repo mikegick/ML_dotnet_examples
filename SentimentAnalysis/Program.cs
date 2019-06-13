@@ -20,11 +20,14 @@ namespace SentimentAnalysis
         static void Main(string[] args)
         {
             // Initialize context variable and load training data
-            MLContext mLContext = new MLContext();
-            TrainTestData splitDataView = LoadData(mLContext);
+            MLContext mlContext = new MLContext();
+            TrainTestData splitDataView = LoadData(mlContext);
 
             // Build and train the model
-            ITransformer model = BuildAndTrainModel(mLContext, splitDataView.TrainSet);
+            ITransformer model = BuildAndTrainModel(mlContext, splitDataView.TrainSet);
+
+            // Evaluate the model against the test set
+            Evaluate(mlContext, model, splitDataView.TestSet);
         }
 
         public static TrainTestData LoadData(MLContext mLContext)
@@ -54,6 +57,28 @@ namespace SentimentAnalysis
 
             // Return the trained model
             return model;
+        }
+
+        public static void Evaluate(MLContext mlContext, ITransformer model, IDataView testSet)
+        {
+            // Transform the test set in order to make predictions
+            Console.WriteLine("========== Evaluating Model Accuracy with Test Data ==========");
+            IDataView predictions = model.Transform(testSet);
+
+            // Compare predicted values with actual labels to assess model's performance
+            CalibratedBinaryClassificationMetrics metrics = mlContext.BinaryClassification.Evaluate(predictions, "Label");
+
+            // Display metrics
+            // Accuracy proportion of correct predictions in the test set
+            // AUC is model confidence in classifying positive/negative classes. The closer to 1, the better
+            // F1 Score is measure of balance between precision and recall. The closer to 1, the better
+            Console.WriteLine();
+            Console.WriteLine("Model Quality Metrics Evaluation");
+            Console.WriteLine("--------------------------------");
+            Console.WriteLine($"Accuracy: {metrics.Accuracy:P2}");
+            Console.WriteLine($"Area Under Roc Curve: {metrics.AreaUnderRocCurve:P2}");
+            Console.WriteLine($"F1Score: {metrics.F1Score:P2}");
+            Console.WriteLine("========== End of Model Evaluation ==========");
         }
     }
 }
