@@ -23,7 +23,8 @@ namespace SentimentAnalysis
             MLContext mLContext = new MLContext();
             TrainTestData splitDataView = LoadData(mLContext);
 
-
+            // Build and train the model
+            ITransformer model = BuildAndTrainModel(mLContext, splitDataView.TrainSet);
         }
 
         public static TrainTestData LoadData(MLContext mLContext)
@@ -36,6 +37,23 @@ namespace SentimentAnalysis
 
             // Returns the split train and test datasets
             return splitDataView;
+        }
+
+        public static ITransformer BuildAndTrainModel(MLContext mlContext, IDataView trainSet)
+        {
+            // Convert "Sentiment Text" column into numeric key types used by ML algorithm and add as a new dataset column
+            // Append a classification algorithm for categorizing rows as positive or negative (binary classification)
+            var estimator = mlContext.Transforms.Text.FeaturizeText(outputColumnName: "Features", inputColumnName: nameof(SentimentData.SentimentText))
+                .Append(mlContext.BinaryClassification.Trainers.SdcaLogisticRegression(labelColumnName: "Label", featureColumnName: "Features"));
+            // Info on SdcaLogisticRegression training algorithm: https://docs.microsoft.com/en-us/dotnet/api/microsoft.ml.trainers.sdcalogisticregressionbinarytrainer
+
+            // Train the model
+            Console.WriteLine("========== Create and Train the Model ==========");
+            var model = estimator.Fit(trainSet);
+            Console.WriteLine("========== Training Complete ==========\n");
+
+            // Return the trained model
+            return model;
         }
     }
 }
