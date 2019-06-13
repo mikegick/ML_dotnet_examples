@@ -19,7 +19,23 @@ namespace SentimentAnalysis
 
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
+            // Initialize context variable and load training data
+            MLContext mLContext = new MLContext();
+            TrainTestData splitDataView = LoadData(mLContext);
+
+
+        }
+
+        public static TrainTestData LoadData(MLContext mLContext)
+        {
+            // Load the data
+            IDataView dataView = mLContext.Data.LoadFromTextFile<SentimentData>(_dataPath, hasHeader: false);
+
+            // Split loaded dataset into train and test datasets(default is 10%, this method will use 20% for test)
+            TrainTestData splitDataView = mLContext.Data.TrainTestSplit(dataView, testFraction: 0.2);
+
+            // Returns the split train and test datasets
+            return splitDataView;
         }
     }
 }
