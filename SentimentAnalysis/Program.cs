@@ -28,6 +28,18 @@ namespace SentimentAnalysis
 
             // Evaluate the model against the test set
             Evaluate(mlContext, model, splitDataView.TestSet);
+
+            // Create single instance of test data
+            // Predict "sentiment" based on test data
+            // Combine test data and predictions for reporting
+            // Log prediction results to console
+            UseModelWithSingleItem(mlContext, model);
+
+            // Create an array of test data
+            // Predict "sentiment" based on test data
+            // Combine test data and predictions for reporting
+            // Log prediction results to console
+            UseModelWithBatchItems(mlContext, model);
         }
 
         public static TrainTestData LoadData(MLContext mLContext)
@@ -79,6 +91,73 @@ namespace SentimentAnalysis
             Console.WriteLine($"Area Under Roc Curve: {metrics.AreaUnderRocCurve:P2}");
             Console.WriteLine($"F1Score: {metrics.F1Score:P2}");
             Console.WriteLine("========== End of Model Evaluation ==========");
+        }
+
+        private static void UseModelWithSingleItem(MLContext mlContext, ITransformer model)
+        {
+            // Perform prediction on a single instance of data
+            PredictionEngine<SentimentData, SentimentPrediction> predictionFunction = mlContext.Model.CreatePredictionEngine<SentimentData, SentimentPrediction>(model);
+            // PredictionEngine is a Convenience API. To learn more, visit https://docs.microsoft.com/en-us/dotnet/api/microsoft.ml.predictionengine-2
+
+            // Create a sample data point to test against
+            SentimentData sampleStatement = new SentimentData
+            {
+                SentimentText = "This was a very bad steak"
+            };
+
+            // Make a prediction on a single data point (the sample data point)
+            var resultPrediction = predictionFunction.Predict(sampleStatement);
+
+            // Log the sentiment text as well as the prediction
+            Console.WriteLine();
+            Console.WriteLine("========== Prediction Test of model with a single sample and test dataset ==========");
+
+            Console.WriteLine();
+            Console.WriteLine($"Sentiment: {resultPrediction.SentimentText}" +
+                $"| Prediction: " +
+                $"{(Convert.ToBoolean(resultPrediction.Prediction) ? "Positive" : "Negative")}" +
+                $" | Probability: {resultPrediction.Probability} ");
+
+            Console.WriteLine("========== End of Predictions ==========");
+            Console.WriteLine();
+        }
+
+        public static void UseModelWithBatchItems(MLContext mlContext, ITransformer model)
+        {
+            // Create multiple sample data points for testing the model on a set
+            IEnumerable<SentimentData> sentiments = new[]
+            {
+                new SentimentData
+                {
+                    SentimentText = "This was a horrible meal"
+                },
+                new SentimentData
+                {
+                    SentimentText = "I love this spaghetti."
+                }
+            };
+
+            // Use the model to predict the comment data sentiment using the Transform() method
+            IDataView batchComments = mlContext.Data.LoadFromEnumerable(sentiments);
+            IDataView predictions = model.Transform(batchComments);
+
+            // Use model to predict whether comment data is Positive (1) or Negative (0).
+            IEnumerable<SentimentPrediction> predictedResults = mlContext.Data.CreateEnumerable<SentimentPrediction>(predictions, reuseRowObject: false);
+
+            // Log the sentiment text as well as the prediction for each sample data point
+            Console.WriteLine();
+            Console.WriteLine("========== Prediction Test of loaded model with multiple samples ==========");
+
+            foreach (var prediction in predictedResults) {
+                Console.WriteLine();
+                Console.WriteLine($"Sentiment: {prediction.SentimentText}" +
+                    $"| Prediction: " +
+                    $"{(Convert.ToBoolean(prediction.Prediction) ? "Positive" : "Negative")}" +
+                    $" | Probability: {prediction.Probability} ");
+            }
+
+            Console.WriteLine("========== End of Predictions ==========");
+            Console.WriteLine();
         }
     }
 }
